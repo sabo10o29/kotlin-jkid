@@ -1,6 +1,7 @@
 package ru.yole.jkid.serialization
 
 import ru.yole.jkid.*
+import java.util.*
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
@@ -36,8 +37,19 @@ private fun StringBuilder.serializeProperty(
     append(": ")
 
     val value = prop.get(obj)
-    val jsonValue = prop.getSerializer()?.toJsonValue(value) ?: value
-    serializePropertyValue(jsonValue)
+    var jsonValue: Any? = null
+    val dateFormatAnn = prop.findAnnotation<DateFormat>()
+    if(dateFormatAnn != null){
+        if(value is Date){
+            jsonValue = DateSerializer(dateFormatAnn.format).toJsonValue(value)
+        }else{
+            throw IllegalStateException("DateFormat annotation is used but the value is not Date")
+        }
+    }else{
+        val serializer = prop.getSerializer()
+        val jsonValue = prop.getSerializer()?.toJsonValue(value)
+    }
+    serializePropertyValue(jsonValue?: value)
 }
 
 fun KProperty<*>.getSerializer(): ValueSerializer<Any?>? {
