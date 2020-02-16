@@ -39,10 +39,10 @@ private fun StringBuilder.serializeProperty(
     val value = prop.get(obj)
     var jsonValue: Any? = null
     val dateFormatAnn = prop.findAnnotation<DateFormat>()
-    if(dateFormatAnn != null){
-        if(value is Date){
+    if (dateFormatAnn != null) {
+        if (value is Date) {
             jsonValue = DateSerializer(dateFormatAnn.format).toJsonValue(value)
-        }else{
+        } else {
             throw IllegalStateException("DateFormat annotation is used but the value is not Date")
         }
     }else{
@@ -68,6 +68,7 @@ private fun StringBuilder.serializePropertyValue(value: Any?) {
         is String -> serializeString(value)
         is Number, is Boolean -> append(value.toString())
         is List<*> -> serializeList(value)
+        is Map<*,*> -> serializeMap(value)
         else -> serializeObject(value)
     }
 }
@@ -76,6 +77,18 @@ private fun StringBuilder.serializeList(data: List<Any?>) {
     data.joinToStringBuilder(this, prefix = "[", postfix = "]") {
         serializePropertyValue(it)
     }
+}
+
+//Support only Map<String, *>
+private fun StringBuilder.serializeMap(data: Map<*, *>){
+    data.flatMap { (k,v) ->
+        var builder = StringBuilder()
+        if(k !is String ) throw IllegalStateException()
+        builder.serializeString(k)
+        builder.append(": ")
+        builder.serializePropertyValue(v)
+        mutableListOf(builder.toString())
+    }.joinToStringBuilder(this, prefix = "{", postfix = "}")
 }
 
 private fun StringBuilder.serializeString(s: String) {
